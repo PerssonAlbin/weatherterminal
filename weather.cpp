@@ -85,7 +85,7 @@ int main() {
     temp = convertToCelsius(temp);
   }
 
-  std::cout << int(temp) << std::endl;
+  std::cout << int(temp) << "°" << std::endl;
 
   return 0;
 }
