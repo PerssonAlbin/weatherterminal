@@ -79,13 +79,14 @@ int main() {
   
   json weatherInfo = APIRequest(weatherUrl)[0]["main"];
 
-  double temp = weatherInfo["temp"].template get<double>();
+  double temp_kelvin = weatherInfo["temp"].template get<double>();
   
   if(!kelvin) {
-    temp = convertToCelsius(temp);
+    double temp_celsius = convertToCelsius(temp_kelvin);
+    std::cout << int(temp_celsius) << "°" << std::endl;
+  } else {
+    std::cout << int(temp_kelvin) << "°" << std::endl;
   }
-
-  std::cout << int(temp) << "°" << std::endl;
 
   return 0;
 }
