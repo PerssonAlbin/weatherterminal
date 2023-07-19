@@ -1,10 +1,13 @@
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
+#include <filesystem>
 #include <curl/curl.h>
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, json *output) {
   size_t totalSize = size * nmemb;
@@ -34,6 +37,7 @@ json APIRequest(const std::string& url) {
 
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
+      std::cout << "Error" << std::endl;
       std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
     }
 
@@ -42,17 +46,35 @@ json APIRequest(const std::string& url) {
   return response;
 }
 
+void createConfig(std::string config_path) {
+  json config = json::parse(R"(
+                            {
+                              "api_key": "",
+                              "city": "",
+                              "kelvin": false
+                            }
+                            )");
+  
+  std::ofstream output_file(config_path);
+  output_file << std::setw(4) << config << std::endl;
+  
+  output_file.close();
+}
+
 json loadConfig() {
   std::string homeDir = std::getenv("HOME");
-  std::string configPath = homeDir + "/.config/.weather_config.json";
+  std::string config_path = homeDir + "/.config/.weather_config.json";
 
-  std::ifstream inputFile(configPath);
-  json inputJson;
-  inputFile >> inputJson;
+  if(!fs::exists(config_path)) {
+    createConfig(config_path);
+  }
+  std::ifstream inputFile(config_path);
+  json input_json;
+  inputFile >> input_json;
 
   inputFile.close();
 
-  return inputJson; 
+  return input_json; 
 }
 
 
@@ -63,23 +85,55 @@ double convertToCelsius(double temp) {
 int main() {
   json config = loadConfig();
 
-  std::string api_key = config["api_key"].template get<std::string>();
-  std::string city = config["city"].template get<std::string>();
-  bool kelvin = config["kelvin"].template get<bool>();
+  std::string api_key;
+  std::string city;
+  bool kelvin;
 
-  std::string cityUrl = "http://api.openweathermap.org/geo/1.0/direct?q=" + city + "&appid=" + api_key;
+  try {
+    api_key = config["api_key"].template get<std::string>();
+    city = config["city"].template get<std::string>();
+    kelvin = config["kelvin"].template get<bool>();
+  }
+  catch (const std::exception&) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "Incomplete config setup" << std::endl;
+    return 0;
+  } 
+
+  if(api_key.empty()) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "Missing api key in config" << std::endl;  
+    return 0;
+  }
+
+  if(city.empty()) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "Missing city in config" << std::endl;
+    return 0;
+  }
+
+  std::string city_url = "http://api.openweathermap.org/geo/1.0/direct?q=" + city + "&appid=" + api_key;
  
 
-  json cityInfo = APIRequest(cityUrl)[0][0];
+  json cityInfo = APIRequest(city_url)[0][0];
 
-  double lat = cityInfo["lat"].template get<double>();
-  double lon = cityInfo["lon"].template get<double>();
+  double lat;
+  double lon;
+  try {
+    lat = cityInfo["lat"].template get<double>();
+    lon = cityInfo["lon"].template get<double>();
+  }
+  catch(std::exception&) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "API Request failed" << std::endl;
+    return 0;
+  }
   
-  std::string weatherUrl = "https://api.openweathermap.org/data/2.5/weather?lat=" + std::to_string(lat) + "&lon=" + std::to_string(lon) + "&appid=" + api_key;
+  std::string weather_url = "https://api.openweathermap.org/data/2.5/weather?lat=" + std::to_string(lat) + "&lon=" + std::to_string(lon) + "&appid=" + api_key;
   
-  json weatherInfo = APIRequest(weatherUrl)[0]["main"];
+  json weather_info = APIRequest(weather_url)[0]["main"];
 
-  double temp_kelvin = weatherInfo["temp"].template get<double>();
+  double temp_kelvin = weather_info["temp"].template get<double>();
   
   if(!kelvin) {
     double temp_celsius = convertToCelsius(temp_kelvin);
