@@ -4,6 +4,7 @@
 #include <string>
 #include <filesystem>
 #include <curl/curl.h>
+#include <cctype>
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
@@ -51,7 +52,7 @@ void createConfig(std::string config_path) {
                             {
                               "api_key": "",
                               "city": "",
-                              "kelvin": false
+                              "temp_unit": ""
                             }
                             )");
   
@@ -78,8 +79,19 @@ json loadConfig() {
 }
 
 
-double convertToCelsius(double temp) {
-  return temp - 273.15;
+double convertToCelsius(double kelvin_temp) {
+  return kelvin_temp - 273.15;
+}
+
+double convertToFahrenheit(double kelvin_temp) {
+  return (kelvin_temp - 273.15) * 9/5 + 32;
+}
+
+std::string lowerCaseString(std::string str) {
+  for (char& ch : str) {
+    ch = std::tolower(ch);
+  }
+  return str;
 }
 
 int main() {
@@ -87,12 +99,12 @@ int main() {
 
   std::string api_key;
   std::string city;
-  bool kelvin;
+  std::string temp_unit;
 
   try {
     api_key = config["api_key"].template get<std::string>();
     city = config["city"].template get<std::string>();
-    kelvin = config["kelvin"].template get<bool>();
+    temp_unit = config["temp_unit"].template get<std::string>();
   }
   catch (const std::exception&) {
     std::cout << "Error" << std::endl;
@@ -112,13 +124,19 @@ int main() {
     return 0;
   }
 
+  if(temp_unit.empty()) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "Missing temp unit in config" << std::endl;
+    return 0;
+  }
+
   std::string city_url = "http://api.openweathermap.org/geo/1.0/direct?q=" + city + "&appid=" + api_key;
  
-
   json cityInfo = APIRequest(city_url)[0][0];
 
   double lat;
   double lon;
+
   try {
     lat = cityInfo["lat"].template get<double>();
     lon = cityInfo["lon"].template get<double>();
@@ -133,13 +151,31 @@ int main() {
   
   json weather_info = APIRequest(weather_url)[0]["main"];
 
-  double temp_kelvin = weather_info["temp"].template get<double>();
+  double temp_kelvin;
   
-  if(!kelvin) {
+  try {
+    temp_kelvin = weather_info["temp"].template get<double>();
+  }
+  catch(std::exception&) {
+    std::cout << "Error" << std::endl;
+    std::cerr << "API request failed" << std::endl;
+    return 0;
+  }
+
+  temp_unit = lowerCaseString(temp_unit);
+  
+  if(temp_unit == "celsius") {
     double temp_celsius = convertToCelsius(temp_kelvin);
     std::cout << int(temp_celsius) << "°" << std::endl;
+  } else if(temp_unit == "fahrenheit") {
+    double temp_fahrenheit = convertToFahrenheit(temp_kelvin);
+    std::cout << int(temp_fahrenheit) << "°F" << std::endl;
+  }
+  else if(temp_unit == "kelvin") {
+    std::cout << int(temp_kelvin) << "K" << std::endl;
   } else {
-    std::cout << int(temp_kelvin) << "°" << std::endl;
+    std::cout << "Error" << std::endl;
+    std::cerr << "temp unit not recognized. The following are supported: celsius, fahrenheit and kelvin" << std::endl;
   }
 
   return 0;
