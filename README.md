@@ -1,4 +1,4 @@
-# Weather in terminal 󰖐
+# Weather in terminal
  
 Made to more easily find the current weather in the terminal.
 
@@ -20,7 +20,8 @@ make
 
 ### Installation of the application
 
-It is recommended to create a symlink from the application to your bin folder (This is required to work with the catppuccin weather status bar).
+[weather-extension]: https://github.com/PerssonAlbin/tmux
+It is recommended to create a symlink from the application to your bin folder (This is required to work with the [Catppuccin weather status bar][weather-extension]).
 
 ### Setup the config
 
@@ -36,7 +37,7 @@ After running the application once, the config will be created in `(home directo
 
 [open-weather]: https://openweathermap.org/api/
 
-| Config keys ||
+| Config keys | Explanations                                                                 |
 | :---------- | :--------------------------------------------------------------------------- |
 | api_key     | An API key can be retrieved for free from [OpenWeather's API][open-weather]. |
 | city        | Any city you would like in English.                                          |
