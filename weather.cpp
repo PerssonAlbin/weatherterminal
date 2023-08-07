@@ -76,8 +76,6 @@ void writeToCache(json cache) {
 }
 
 void updateCacheData(std::string json_key, std::string input_str) {
-    std::cout << "updating cache: " << json_key << "with " << input_str
-              << std::endl;
     json cache = loadCache();
     cache[json_key] = input_str;
     writeToCache(cache);
