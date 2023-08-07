@@ -32,7 +32,7 @@ After running the application once, the config will be created in `(home directo
     "api_key": "",
     "city": "",
     "temp_unit": "",
-    "interval_min: 15
+    "interval_min": 15
 }
 ```
 
