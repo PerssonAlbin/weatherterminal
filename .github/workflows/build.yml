@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install libcurl
+        run: sudo apt-get install libcurl4-openssl-dev -y
+
       - name: Configure CMake
         run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} . -B./${{env.BUILD_DIR}}
 
