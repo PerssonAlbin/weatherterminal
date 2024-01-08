@@ -15,6 +15,7 @@ compile_commands.json
 # Project folders
 **/.idea
 **/CMakeFiles
+**/_deps
 .vscode/*
 
 # Exceptions
