@@ -20,8 +20,12 @@ make
 
 ### Installation of the application
 
+```sh
+sudo make install
+```
+
 [weather-extension]: https://github.com/PerssonAlbin/tmux
-It is recommended to create a symlink from the application to your bin folder (This is required to work with the [Catppuccin weather status bar][weather-extension]).
+To use it in this [tmux theme][weather-extension] a installation is necessary.
 
 ### Setup the config
 
