@@ -29,9 +29,8 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, json* output) {
     return totalSize;
 }
 
-json APIRequest(const std::string& url) {
+json APIRequest(CURLcode* res, const std::string& url) {
     CURL* curl;
-    CURLcode res;
     json response;
 
     curl = curl_easy_init();
@@ -40,13 +39,7 @@ json APIRequest(const std::string& url) {
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
-        res = curl_easy_perform(curl);
-        if (res != CURLE_OK) {
-            std::cout << "Error" << std::endl;
-            std::cerr << "curl_easy_perform() failed: "
-                      << curl_easy_strerror(res) << std::endl;
-        }
-
+        *res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
     }
     return response;
@@ -54,7 +47,7 @@ json APIRequest(const std::string& url) {
 
 json loadCache() {
     std::string homeDir = std::getenv("HOME");
-    std::string cache_path = homeDir + "/.config/weather_cache.json";
+    std::string cache_path = homeDir + "/.weather/cache.json";
 
     std::ifstream cache_file(cache_path);
     json cache_json;
@@ -67,7 +60,7 @@ json loadCache() {
 
 void writeToCache(json cache) {
     std::string homeDir = std::getenv("HOME");
-    std::string cache_path = homeDir + "/.config/weather_cache.json";
+    std::string cache_path = homeDir + "/.weather/cache.json";
 
     std::ofstream output_file(cache_path);
     output_file << std::setw(4) << cache << std::endl;
@@ -87,7 +80,7 @@ void createConfig(std::string config_path) {
                               "api_key": "",
                               "city": "",
                               "temp_unit": "",
-							  "interval_min: 15
+                              "interval_min: 15
                             }
                             )");
 
@@ -99,7 +92,7 @@ void createConfig(std::string config_path) {
 
 json loadConfig() {
     std::string homeDir = std::getenv("HOME");
-    std::string config_path = homeDir + "/.config/.weather_config.json";
+    std::string config_path = homeDir + "/.weather/config.json";
 
     if (!fs::exists(config_path)) {
         createConfig(config_path);
@@ -194,7 +187,7 @@ void printCache(bool display_icon) {
 
 bool isCacheValid(int interval) {
     std::string homeDir = std::getenv("HOME");
-    std::string cache_path = homeDir + "/.config/weather_cache.json";
+    std::string cache_path = homeDir + "/.weather/cache.json";
 
     if (!fs::exists(cache_path)) {
         createCache(cache_path);
@@ -288,15 +281,20 @@ int main(int argc, char* argv[]) {
     if (use_cache) {
         printCache(display_icon);
         return 0;
-    } else {
-        updateCacheData("date", timeToString(std::chrono::system_clock::now()));
     }
 
     std::string city_url =
         "http://api.openweathermap.org/geo/1.0/direct?q=" + city +
         "&appid=" + api_key;
 
-    json cityInfo = APIRequest(city_url)[0][0];
+    CURLcode res;
+    json cityInfo = APIRequest(&res, city_url)[0][0];
+    if (res != CURLE_OK) {
+        std::cout << "Error" << std::endl;
+        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res)
+                  << std::endl;
+        return -1;
+    }
 
     double lat;
     double lon;
@@ -315,8 +313,13 @@ int main(int argc, char* argv[]) {
         std::to_string(lat) + "&lon=" + std::to_string(lon) +
         "&appid=" + api_key;
 
-    json weather_info = APIRequest(weather_url)[0];
-
+    json weather_info = APIRequest(&res, weather_url)[0];
+    if (res != CURLE_OK) {
+        std::cout << "Error" << std::endl;
+        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res)
+                  << std::endl;
+        return -1;
+    }
     double temp_kelvin;
     std::string weather_id;
 
@@ -350,6 +353,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::string icon = setWeatherIcon(weather_id);
+    updateCacheData("date", timeToString(std::chrono::system_clock::now()));
     updateCacheData("icon", icon);
     updateCacheData("temp", temp_print);
     updateCacheData("city", city);

@@ -1,5 +1,5 @@
 # Weather in terminal
- 
+
 Made to more easily find the current weather in the terminal.
 
 ## Get started
@@ -12,7 +12,7 @@ Requirements for compiling the package:
 
 ### Building the application
 
-Build the application with the following commands: 
+Build the application with the following commands:
 ```sh
 cmake .
 make
@@ -29,7 +29,7 @@ To use it in this [tmux theme][weather-extension] a installation is necessary.
 
 ### Setup the config
 
-After running the application once, the config will be created in `(home directory)/.config/.weather_config.json`. The config should look like this:
+After running the application once, the config will be created in `(home directory)/.weather/config.json`. The config should look like this:
 
 ```json
 {
