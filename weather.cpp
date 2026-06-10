@@ -197,6 +197,9 @@ bool isCacheValid(int interval) {
     json config = loadConfig();
 
     std::string cached_date_str = cache["date"].template get<std::string>();
+    if (cached_date_str == "") {
+        return false;
+    }
     std::chrono::system_clock::time_point cached_date =
         stringToTime(cached_date_str);
 
